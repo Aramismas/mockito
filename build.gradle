@@ -25,6 +25,7 @@ plugins {
     id 'com.github.ben-manes.versions' version '0.42.0'
     id 'biz.aQute.bnd.builder' version '6.3.1'
     id 'ru.vyarus.animalsniffer' version '1.5.2'
+    id 'org.checkerframework' version '0.6.15'
 }
 
 description = 'Mockito mock objects library core API and implementation'
@@ -48,6 +49,7 @@ apply from: 'gradle/mockito-core/testing.gradle'
 apply from: 'gradle/dependencies.gradle'
 
 allprojects { proj ->
+    apply plugin: 'net.ltgt.errorprone'
     repositories {
         mavenCentral()
         google()
@@ -86,6 +88,33 @@ configurations {
     testUtil //TODO move to separate project
 }
 
+apply plugin: 'org.checkerframework'
+
+checkerFramework {
+    checkers = [
+        /*'org.checkerframework.checker.formatter.FormatterChecker',
+        // TODO: 'org.checkerframework.checker.index.IndexChecker',
+        'org.checkerframework.checker.interning.InterningChecker',
+        'org.checkerframework.checker.lock.LockChecker',
+        'org.checkerframework.checker.nullness.NullnessChecker',
+        'org.checkerframework.checker.regex.RegexChecker',
+        'org.checkerframework.checker.signature.SignatureChecker',
+        'org.checkerframework.checker.signedness.SignednessChecker',
+        'org.checkerframework.common.initializedfields.InitializedFieldsChecker',*/
+        'org.checkerframework.checker.resourceleak.ResourceLeakChecker'
+    ]
+    extraJavacArgs = [
+        '-Werror',
+        '-Xlint:-processing', // because of Error Prone's "No processor claimed any of these annotations"
+        '-ArequirePrefixInWarningSuppressions',
+        '-AwarnUnneededSuppressions',
+        '-Astubs=mockitostubs',
+        '-Ainfer=stubs',
+        '-AstubDebug',
+        '-AmergeStubsWithSource'
+    ]
+}
+
 dependencies {
     api libraries.bytebuddy, libraries.bytebuddyagent
 
@@ -102,7 +131,20 @@ dependencies {
 
     signature 'org.codehaus.mojo.signature:java18:1.0@signature'
     signature 'net.sf.androidscents.signature:android-api-level-24:7.0_r2@signature'
+
+    //compileOnly 'org.checkerframework:checker-qual:3.21.2'
+    //checkerFramework 'org.checkerframework:checker:3.23.0-SNAPSHOT'
 }
+
+if (project.hasProperty("cfLocal")) {
+    def cfHome = String.valueOf(System.getenv("CHECKERFRAMEWORK"))
+    dependencies {
+        compileOnly files(cfHome + "/checker/dist/checker-qual.jar")
+        testCompileOnly files(cfHome + "/checker/dist/checker-qual.jar")
+        checkerFramework files(cfHome + "/checker/dist/checker.jar")
+    }
+}
+
 
 animalsniffer {
     sourceSets = [sourceSets.main]
